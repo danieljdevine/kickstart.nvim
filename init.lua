@@ -388,11 +388,12 @@ require('lazy').setup({
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
+        defaults = {
+          path_display = { 'truncate' },
+          -- mappings = {
+          --   i = { ['<c-enter>'] = 'to_fuzzy_refine' },
+          -- },
+        },
         -- pickers = {}
         extensions = {
           ['ui-select'] = { require('telescope.themes').get_dropdown() },
@@ -408,6 +409,7 @@ require('lazy').setup({
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set('n', '<leader>s~', function() builtin.find_files { cwd = vim.fn.expand '~', hidden = true } end, { desc = '[S]earch [F]iles (home)' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -688,7 +690,7 @@ require('lazy').setup({
       format_on_save = function(bufnr)
         -- You can specify filetypes to autoformat on save here:
         local enabled_filetypes = {
-          -- lua = true,
+          lua = true,
           -- python = true,
         }
         if enabled_filetypes[vim.bo[bufnr].filetype] then
@@ -722,7 +724,7 @@ require('lazy').setup({
         'L3MON4D3/LuaSnip',
         version = '2.*',
         build = (function()
-          -- Build Step is needed for regex support in snippets.
+          -- Build SExclusionKValue tep is needed for regex support in snippets.
           -- This step is not supported in many windows environments.
           -- Remove the below condition to re-enable on windows.
           if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then return end
@@ -767,7 +769,7 @@ require('lazy').setup({
         -- <c-k>: Toggle signature help
         --
         -- See :h blink-cmp-config-keymap for defining your own keymap
-        preset = 'default',
+        preset = 'super-tab',
 
         -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
         --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
@@ -810,20 +812,80 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
-    config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('tokyonight').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
-        },
-      }
+    -- 'folke/tokyonight.nvim',
+    -- priority = 1000, -- Make sure to load this before all the other start plugins.
+    -- config = function()
+    ---@diagnostic disable-next-line: missing-fields
+    --   require('tokyonight').setup {
+    --     styles = {
+    --       comments = { italic = false }, -- Disable italics in comments
+    --     },
+    --   }
 
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+    -- Load the colorscheme here.
+    -- Like many other themes, this one has different styles, and you could load
+    -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
+    --   vim.cmd.colorscheme 'tokyonight-night'
+
+    -- 'rebelot/kanagawa.nvim',
+    -- priority = 1000,
+    -- config = function()
+    --   require('kanagawa').setup {
+    --     background = { dark = 'dragon' },
+    --   }
+    --   vim.cmd.colorscheme 'kanagawa-dragon'
+
+    'sainnhe/gruvbox-material',
+    priority = 1000,
+    config = function()
+      vim.o.termguicolors = true
+      vim.g.gruvbox_material_background = 'hard'
+      vim.g.gruvbox_material_foreground = 'material'
+      vim.g.gruvbox_material_better_performance = 1
+      vim.g.gruvbox_material_colors_override = { bg0 = { '#141414', '233' } }
+      vim.cmd.colorscheme 'gruvbox-material'
+
+      -- Dim all highlight backgrounds when the tmux pane loses focus, restore on
+      -- regain. Theme-agnostic: reads current highlights, blends bg toward white
+      -- by dim_factor so inactive panes appear lighter (matching tmux convention).
+      -- Requires `set -g focus-events on` in tmux.
+      local dim_factor = 0.12
+      local cached = nil
+
+      local function lighten(rgb)
+        local r = bit.band(bit.rshift(rgb, 16), 0xFF)
+        local g = bit.band(bit.rshift(rgb, 8), 0xFF)
+        local b = bit.band(rgb, 0xFF)
+        r = math.floor(r + (255 - r) * dim_factor)
+        g = math.floor(g + (255 - g) * dim_factor)
+        b = math.floor(b + (255 - b) * dim_factor)
+        return r * 65536 + g * 256 + b
+      end
+
+      local function dim()
+        if cached then return end
+        cached = vim.api.nvim_get_hl(0, {})
+        for name, hl in pairs(cached) do
+          if hl.bg then
+            local new_hl = vim.deepcopy(hl)
+            new_hl.bg = lighten(hl.bg)
+            vim.api.nvim_set_hl(0, name, new_hl)
+          end
+        end
+      end
+
+      local function restore()
+        if not cached then return end
+        for name, hl in pairs(cached) do
+          vim.api.nvim_set_hl(0, name, hl)
+        end
+        cached = nil
+      end
+
+      local grp = vim.api.nvim_create_augroup('tmux-pane-dim', { clear = true })
+      vim.api.nvim_create_autocmd('FocusLost', { group = grp, callback = dim })
+      vim.api.nvim_create_autocmd('FocusGained', { group = grp, callback = restore })
+      vim.api.nvim_create_autocmd('ColorScheme', { group = grp, callback = function() cached = nil end })
     end,
   },
 
@@ -962,59 +1024,227 @@ require('lazy').setup({
   -- you can continue same window with `<space>sr` which resumes last telescope search
 
   {
-    "ThePrimeagen/harpoon",
-    branch = "harpoon2",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    'ThePrimeagen/harpoon',
+    branch = 'harpoon2',
+    dependencies = { 'nvim-lua/plenary.nvim' },
 
     config = function()
-      local harpoon = require("harpoon")
+      local harpoon = require 'harpoon'
 
       -- REQUIRED
       harpoon:setup()
       -- REQUIRED
 
-      vim.keymap.set("n", "<leader>a", function() harpoon:list():add() end)
-      vim.keymap.set("n", "<C-e>", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end)
+      vim.keymap.set('n', '<leader>a', function() harpoon:list():add() end)
+      vim.keymap.set('n', '<leader>z', function() harpoon:list():remove() end)
+      vim.keymap.set('n', '<leader>Z', function() harpoon:list():clear() end)
 
-      vim.keymap.set("n", "<leader>1", function() harpoon:list():select(1) end)
-      vim.keymap.set("n", "<leader>2", function() harpoon:list():select(2) end)
-      vim.keymap.set("n", "<leader>3", function() harpoon:list():select(3) end)
-      vim.keymap.set("n", "<leader>4", function() harpoon:list():select(4) end)
-      vim.keymap.set("n", "<leader>5", function() harpoon:list():select(5) end)
-      vim.keymap.set("n", "<leader>6", function() harpoon:list():select(6) end)
-      vim.keymap.set("n", "<leader>7", function() harpoon:list():select(7) end)
-      vim.keymap.set("n", "<leader>8", function() harpoon:list():select(8) end)
-      vim.keymap.set("n", "<leader>9", function() harpoon:list():select(9) end)
-      vim.keymap.set("n", "<leader>0", function() harpoon:list():select(10) end)
+      vim.keymap.set('n', '<leader>1', function() harpoon:list():select(1) end)
+      vim.keymap.set('n', '<leader>2', function() harpoon:list():select(2) end)
+      vim.keymap.set('n', '<leader>3', function() harpoon:list():select(3) end)
+      vim.keymap.set('n', '<leader>4', function() harpoon:list():select(4) end)
+      vim.keymap.set('n', '<leader>5', function() harpoon:list():select(5) end)
+      vim.keymap.set('n', '<leader>6', function() harpoon:list():select(6) end)
+      vim.keymap.set('n', '<leader>7', function() harpoon:list():select(7) end)
+      vim.keymap.set('n', '<leader>8', function() harpoon:list():select(8) end)
+      vim.keymap.set('n', '<leader>9', function() harpoon:list():select(9) end)
+      vim.keymap.set('n', '<leader>0', function() harpoon:list():select(10) end)
 
       -- Toggle previous & next buffers stored within Harpoon list
-      vim.keymap.set("n", "<C-S-P>", function() harpoon:list():prev() end)
-      vim.keymap.set("n", "<C-S-N>", function() harpoon:list():next() end)
+      vim.keymap.set('n', '<C-S-P>', function() harpoon:list():prev() end)
+      vim.keymap.set('n', '<C-S-N>', function() harpoon:list():next() end)
 
       -- basic telescope configuration
-      local conf = require("telescope.config").values
+      local conf = require('telescope.config').values
       local function toggle_telescope(harpoon_files)
-          local file_paths = {}
-          for _, item in ipairs(harpoon_files.items) do
-              table.insert(file_paths, item.value)
-          end
+        local file_paths = {}
+        for i = 1, harpoon_files:length() do
+          local item = harpoon_files.items[i]
+          if item ~= nil then table.insert(file_paths, item.value) end
+        end
 
-          require("telescope.pickers").new({}, {
-              prompt_title = "Harpoon",
-              finder = require("telescope.finders").new_table({
-                  results = file_paths,
-              }),
-              previewer = conf.file_previewer({}),
-              sorter = conf.generic_sorter({}),
-          }):find()
+        require('telescope.pickers')
+          .new({}, {
+            prompt_title = 'Harpoon',
+            finder = require('telescope.finders').new_table {
+              results = file_paths,
+            },
+            previewer = conf.file_previewer {},
+            sorter = conf.generic_sorter {},
+          })
+          :find()
       end
 
-      vim.keymap.set("n", "<C-e>", function() toggle_telescope(harpoon:list()) end,
-          { desc = "Open harpoon window" })
-      end
-
+      vim.keymap.set('n', '<C-e>', function() toggle_telescope(harpoon:list()) end, { desc = 'Open harpoon window' })
+    end,
   },
 
+  {
+    'GustavEikaas/easy-dotnet.nvim',
+    -- 'nvim-telescope/telescope.nvim' or 'ibhagwan/fzf-lua' or 'folke/snacks.nvim'
+    -- are highly recommended for a better experience
+    dependencies = { 'nvim-lua/plenary.nvim', 'mfussenegger/nvim-dap', 'folke/snacks.nvim' },
+    config = function()
+      local dotnet = require 'easy-dotnet'
+      -- Options are not required
+      dotnet.setup {
+        managed_terminal = {
+          auto_hide = true, -- auto hides terminal if exit code is 0
+          auto_hide_delay = 1000, -- delay before auto hiding, 0 = instant
+          mappings = {
+            next_tab = { lhs = '<Tab>', desc = 'Next terminal tab' },
+            prev_tab = { lhs = '<S-Tab>', desc = 'Previous terminal tab' },
+            new_terminal = { lhs = '+', desc = 'New user terminal' },
+            close_terminal = { lhs = 'X', desc = 'Close current terminal tab' },
+            hide_panel = { lhs = 'q', desc = 'Hide terminal panel' },
+          },
+        },
+        -- Optional configuration for external terminals (matches nvim-dap structure)
+        external_terminal = nil,
+        lsp = {
+          enabled = true, -- Enable builtin roslyn lsp
+          set_fold_expr = false,
+          preload_roslyn = false, -- Start loading roslyn before any buffer is opened
+          roslynator_enabled = true, -- Automatically enable roslynator analyzer
+          easy_dotnet_analyzer_enabled = true, -- Enable roslyn analyzer from easy-dotnet-server
+          auto_refresh_codelens = false,
+          analyzer_assemblies = {}, -- Any additional roslyn analyzers you might use like SonarAnalyzer.CSharp
+          config = {},
+        },
+        debugger = {
+          -- Path to custom coreclr DAP adapter
+          -- easy-dotnet-server falls back to its own netcoredbg binary if bin_path is nil
+          bin_path = nil,
+          console = 'integratedTerminal', -- Controls where the target app runs: "integratedTerminal" (Neovim buffer) or "externalTerminal" (OS window)
+          apply_value_converters = true,
+          auto_register_dap = true,
+          mappings = {
+            open_variable_viewer = { lhs = 'T', desc = 'open variable viewer' },
+          },
+        },
+        ---@type TestRunnerOptions
+        test_runner = {
+          auto_start_testrunner = true,
+          hide_legend = false,
+          ---@type "split" | "vsplit" | "float" | "buf"
+          viewmode = 'float',
+          ---@type number|nil
+          vsplit_width = nil,
+          ---@type string|nil "topleft" | "topright"
+          vsplit_pos = nil,
+          icons = {
+            passed = '',
+            skipped = '',
+            failed = '',
+            success = '',
+            reload = '',
+            test = '',
+            sln = '󰘐',
+            project = '󰘐',
+            dir = '',
+            package = '',
+            class = '',
+            build_failed = '󰒡',
+          },
+          mappings = {
+            run_test_from_buffer = { lhs = '<leader>r', desc = 'run test from buffer' },
+            run_all_tests_from_buffer = { lhs = '<leader>T', desc = 'Run all tests in file' },
+            get_build_errors = { lhs = '<leader>e', desc = 'get build errors' },
+            peek_stack_trace_from_buffer = { lhs = '<leader>p', desc = 'peek stack trace from buffer' },
+            debug_test_from_buffer = { lhs = '<leader>d', desc = 'run test from buffer' },
+            debug_test = { lhs = '<leader>d', desc = 'debug test' },
+            go_to_file = { lhs = 'g', desc = 'go to file' },
+            run_all = { lhs = '<leader>R', desc = 'run all tests' },
+            run = { lhs = '<leader>r', desc = 'run test' },
+            peek_stacktrace = { lhs = '<leader>p', desc = 'peek stacktrace of failed test' },
+            expand = { lhs = 'o', desc = 'expand' },
+            expand_node = { lhs = 'E', desc = 'expand node' },
+            collapse_all = { lhs = 'W', desc = 'collapse all' },
+            close = { lhs = 'q', desc = 'close testrunner' },
+            refresh_testrunner = { lhs = '<C-r>', desc = 'refresh testrunner' },
+            cancel = { lhs = '<C-c>', desc = 'cancel in-flight operation' },
+          },
+        },
+        new = {
+          project = {
+            prefix = 'sln', -- "sln" | "none"
+          },
+        },
+        csproj_mappings = true,
+        fsproj_mappings = true,
+        auto_bootstrap_namespace = {
+          --block_scoped, file_scoped
+          type = 'block_scoped',
+          enabled = true,
+          use_clipboard_json = {
+            behavior = 'prompt', --'auto' | 'prompt' | 'never',
+            register = '+', -- which register to check
+          },
+        },
+        server = {
+          ---@type nil | "Off" | "Critical" | "Error" | "Warning" | "Information" | "Verbose" | "All"
+          log_level = nil,
+        },
+        -- choose which picker to use with the plugin
+        -- possible values are "telescope" | "fzf" | "snacks" | "basic"
+        -- if no picker is specified, the plugin will determine
+        -- the available one automatically with this priority:
+        --  snacks -> fzf -> telescope ->  basic
+        picker = 'telescope',
+        background_scanning = false,
+        notifications = {
+          --Set this to false if you have configured lualine to avoid double logging
+          handler = function(start_event)
+            local spinner = require('easy-dotnet.ui-modules.spinner').new()
+            spinner:start_spinner(start_event.job.name)
+            ---@param finished_event JobEvent
+            return function(finished_event) spinner:stop_spinner(finished_event.result.msg, finished_event.result.level) end
+          end,
+        },
+        diagnostics = {
+          default_severity = 'error',
+          setqflist = false,
+        },
+        outdated = {
+          mappings = {
+            upgrade = { lhs = '<leader>pu', desc = 'upgrade package under cursor' },
+            upgrade_all = { lhs = '<leader>pa', desc = 'upgrade all outdated packages' },
+          },
+        },
+      }
+
+      -- Example command
+      vim.api.nvim_create_user_command('Secrets', function() dotnet.secrets() end, {})
+
+      -- Example keybinding
+      vim.keymap.set('n', '<C-p>', function() dotnet.run_project() end)
+
+      -- Patch the Roslyn LSP cmd_env to inject a custom MSBuild targets file that trims trailing
+      -- semicolons from TargetFrameworks (e.g. "net8.0;" from "net8.0;$(TTDNetFramework)" where
+      -- TTDNetFramework is empty). Without this, Roslyn sees an empty TFM entry which it reports
+      -- as "Unsupported,Version=v0.0", causing every project in large solutions to fail loading.
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'LazyDone',
+        once = true,
+        callback = function()
+          local cfg = vim.lsp.config['easy_dotnet']
+          if cfg then
+            cfg.cmd_env = cfg.cmd_env or {}
+            cfg.cmd_env.CustomBeforeMicrosoftCommonCrossTargetingTargets = vim.fn.expand '~/.config/nvim/msbuild/roslyn-tfm-fix.targets'
+          end
+        end,
+      })
+    end,
+  },
+  {
+    'MeanderingProgrammer/render-markdown.nvim',
+    dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.nvim' }, -- if you use the mini.nvim suite
+    -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-mini/mini.icons' },        -- if you use standalone mini plugins
+    -- dependencies = { 'nvim-treesitter/nvim-treesitter', 'nvim-tree/nvim-web-devicons' }, -- if you prefer nvim-web-devicons
+    ---@module 'render-markdown'
+    ---@type render.md.UserConfig
+    opts = {},
+  },
 }, { ---@diagnostic disable-line: missing-fields
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
